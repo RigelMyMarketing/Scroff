@@ -36,4 +36,4 @@ EXPOSE 4000
 
 # Applies any pending migrations, then starts the server (which also
 # seeds the first admin account + default prize pool if the DB is empty).
-CMD ["sh", "-c", "npx --prefix server prisma migrate deploy --schema=./server/prisma/schema.prisma && node server/src/index.js"]
+CMD ["sh", "-c", "npx --prefix server prisma db push --schema=./server/prisma/schema.prisma --skip-generate --accept-data-loss && node server/src/index.js"]
