@@ -12,6 +12,7 @@ RUN npm run build
 
 FROM node:22-alpine AS runtime
 WORKDIR /repo
+RUN apk add --no-cache openssl
 
 # Server dependencies (production only)
 COPY server/package*.json ./server/
