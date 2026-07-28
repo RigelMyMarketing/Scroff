@@ -4,7 +4,6 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { ensureSession } from './lib/session.js';
-import { UPLOAD_DIR, UPLOAD_URL_PREFIX } from './lib/uploadStorage.js';
 import { authRouter } from './routes/auth.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { gameRouter } from './routes/game.routes.js';
@@ -24,8 +23,6 @@ export function createApp() {
     app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
   }
 
-  app.use(UPLOAD_URL_PREFIX, express.static(UPLOAD_DIR));
-
   app.use('/api/auth', authRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/game', ensureSession, gameRouter);
@@ -40,7 +37,7 @@ export function createApp() {
   const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
   app.use(express.static(clientDist));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith(UPLOAD_URL_PREFIX)) return next();
+    if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(clientDist, 'index.html'), (err) => {
       if (err) next();
     });
