@@ -143,17 +143,19 @@ export default function ScratchCard({ cellIndex, prize, onRevealed, onClose }) {
           </button>
         </div>
         <div className="ticket-body">
-          <div className="prize-reveal">
-            {prize.imageUrl ? (
-              <img className="pe-img" src={prize.imageUrl} alt={prize.name} />
-            ) : (
-              <span className="pe">{prize.emoji || '🎁'}</span>
-            )}
-            <span className="pn">{prize.name}</span>
-            {prize.isFreeRetry && revealed && <span className="pf">Your turn has been credited back!</span>}
-          </div>
-          <div className="scratch-wrap" ref={wrapRef}>
-            <canvas ref={canvasRef} />
+          <div className="reveal-stage">
+            <div className="prize-reveal">
+              {prize.imageUrl ? (
+                <img className="pe-img" src={prize.imageUrl} alt={prize.name} />
+              ) : (
+                <span className="pe">{prize.emoji || '🎁'}</span>
+              )}
+              <span className="pn">{prize.name}</span>
+              {prize.isFreeRetry && revealed && <span className="pf">Your turn has been credited back!</span>}
+            </div>
+            <div className="scratch-wrap" ref={wrapRef}>
+              <canvas ref={canvasRef} />
+            </div>
           </div>
           <div className="hint">{revealed ? 'Fully revealed!' : 'Scratch the latex to reveal your prize \u2192'}</div>
         </div>
