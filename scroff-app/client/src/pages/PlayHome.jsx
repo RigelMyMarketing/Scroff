@@ -84,13 +84,24 @@ export default function PlayHome() {
     }
   }
 
+  async function handleRefresh() {
+    try {
+      const res = await api.post('/api/game/refresh', {});
+      setGameState((prev) => ({
+        ...prev,
+        used: res.used,
+        remaining: res.remaining,
+        cells: res.cells,
+        myPrizes: res.myPrizes,
+      }));
+      flashToast('Fresh board! New prizes are waiting.');
+    } catch (e) {
+      flashToast(e.message);
+    }
+  }
+
   function closeModal() {
     setActiveCell(null);
-    // If that was the last turn, the server will hand back a freshly
-    // shuffled board (and an empty prize list) on the next fetch.
-    if (gameState && gameState.remaining <= 0) {
-      flashToast('Fresh board! New prizes are waiting.');
-    }
     loadState();
   }
 
@@ -136,10 +147,15 @@ export default function PlayHome() {
           <div className={`stat-chip ${remaining > 0 ? 'ok' : 'warn'}`}>
             Turns left <b>{remaining}</b> / {attemptsPerUser}
           </div>
+          {remaining <= 0 && (
+            <button className="btn btn-primary" onClick={handleRefresh}>
+              🔄 Refresh board
+            </button>
+          )}
         </div>
         {remaining <= 0 && (
           <div className="stat-chip warn" style={{ marginBottom: 16 }}>
-            You're out of turns for this round. Come back to play a fresh board!
+            You're out of turns for this round. Hit "Refresh board" above for a new one!
           </div>
         )}
         <BowlGrid cells={cells} canPlay={remaining > 0} onPick={handlePick} flushingCell={flushingCell} />

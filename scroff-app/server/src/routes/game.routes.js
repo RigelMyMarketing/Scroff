@@ -26,17 +26,15 @@ function serializePrize(pt) {
 }
 
 // Loads (or transparently regenerates) the board for a session. A board is
-// regenerated when: it doesn't exist yet, the admin has published a new
-// configuration since it was made, or the player has used up every turn.
-// Regenerating also clears that session's prize-win history, per spec.
+// regenerated when: it doesn't exist yet, or the admin has published a new
+// configuration since it was made. Running out of turns does NOT auto-
+// regenerate anymore — the player must explicitly hit the refresh endpoint
+// (POST /api/game/refresh) once all turns are spent.
 async function getFreshBoard(sessionId) {
   const { config, prizeTypes } = await getConfigAndPrizeTypes();
   let board = await prisma.playerBoard.findUnique({ where: { sessionId } });
 
-  const needsNewBoard =
-    !board ||
-    board.configVersion !== config.configVersion ||
-    board.used >= config.attemptsPerUser;
+  const needsNewBoard = !board || board.configVersion !== config.configVersion;
 
   if (needsNewBoard) {
     const cells = generateBoard(prizeTypes);
@@ -109,6 +107,30 @@ gameRouter.post('/pick', async (req, res) => {
     prize: serializePrize(prizeType),
     used: updated.used,
     remaining: Math.max(0, config.attemptsPerUser - updated.used),
+  });
+});
+
+gameRouter.post('/refresh', async (req, res) => {
+  const { config, prizeTypes } = await getConfigAndPrizeTypes();
+  const board = await prisma.playerBoard.findUnique({ where: { sessionId: req.sessionId } });
+
+  if (!board || board.used < config.attemptsPerUser) {
+    return res.status(400).json({ error: 'You still have turns left on this board' });
+  }
+
+  const cells = generateBoard(prizeTypes);
+  await prisma.prizeWin.deleteMany({ where: { sessionId: req.sessionId } });
+  const updated = await prisma.playerBoard.update({
+    where: { sessionId: req.sessionId },
+    data: { configVersion: config.configVersion, cells: JSON.stringify(cells), used: 0 },
+  });
+
+  res.json({
+    attemptsPerUser: config.attemptsPerUser,
+    used: updated.used,
+    remaining: config.attemptsPerUser,
+    cells: cells.map((c) => ({ cellIndex: c.cellIndex, status: c.status })),
+    myPrizes: [],
   });
 });
 
