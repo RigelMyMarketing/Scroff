@@ -13,6 +13,11 @@ RUN npm run build
 FROM node:22-alpine AS runtime
 WORKDIR /repo
 
+# Alpine doesn't ship OpenSSL by default, but Prisma's query engine needs it
+# to detect which engine binary to use at runtime. Without this, Prisma
+# crashes on startup with a "could not parse schema engine response" error.
+RUN apk add --no-cache openssl
+
 # Server dependencies (production only)
 COPY server/package*.json ./server/
 RUN npm install --prefix server --omit=dev
