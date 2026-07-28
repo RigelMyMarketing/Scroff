@@ -1,0 +1,80 @@
+// Scroff data model.
+// Default datasource is SQLite (zero-config, file-based) which is perfect for
+// getting this live quickly. To move to Postgres later for heavier traffic:
+//   1. Change `provider` below to "postgresql"
+//   2. Point DATABASE_URL (in .env) at your Postgres instance
+//   3. Run `npx prisma migrate dev`
+// No application code needs to change — Prisma abstracts the rest.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A staff/administrator account. Real, hashed-password authentication —
+// separate entirely from anonymous player sessions.
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// One entry in the prize pool, configured by the admin.
+// `qty` is how many of the 50 board cells this prize occupies.
+model PrizeType {
+  id           String   @id @default(cuid())
+  name         String
+  emoji        String? // fallback / quick icon
+  imagePath    String? // uploaded photo, takes priority over emoji when present
+  qty          Int      @default(0)
+  isFreeRetry  Boolean  @default(false) // "One more time" style prize: refunds the turn
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Single-row table holding the live draw configuration.
+// `configVersion` is bumped every time the admin publishes changes, so that
+// any in-progress player board knows it needs to be regenerated.
+model DrawConfig {
+  id              Int      @id @default(1)
+  attemptsPerUser Int      @default(3)
+  configVersion   String   @default("v1")
+  updatedAt       DateTime @updatedAt
+}
+
+// A player's current 50-cell board. One row per anonymous session.
+// Regenerated whenever the session runs out of turns, or the admin
+// publishes a new configVersion.
+model PlayerBoard {
+  id            Int      @id @default(autoincrement())
+  sessionId     String   @unique
+  configVersion String
+  cells         String // JSON array of 50 { prizeTypeId, status }
+  used          Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Permanent record of everything a session has won in its *current* round.
+// Cleared (new rows replace old) whenever the board refreshes, matching the
+// "My Prizes resets with the board" requirement. Kept in its own table
+// (rather than embedded JSON) so it can be queried/reported on later without
+// any schema change.
+model PrizeWin {
+  id             Int      @id @default(autoincrement())
+  sessionId      String
+  boardId        Int
+  cellIndex      Int
+  prizeTypeId    String
+  prizeName      String
+  prizeEmoji     String?
+  prizeImagePath String?
+  isFreeRetry    Boolean  @default(false)
+  wonAt          DateTime @default(now())
+}
