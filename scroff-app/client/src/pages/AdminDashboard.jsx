@@ -15,8 +15,10 @@ export default function AdminDashboard() {
   const [activeBoards, setActiveBoards] = useState(0);
   const [claims, setClaims] = useState([]);
   const [toast, setToast] = useState('');
+  const [stockAlerts, setStockAlerts] = useState([]); // names currently at 0 qty
   const [publishing, setPublishing] = useState(false);
   const saveTimers = useRef({});
+  const prevQtyRef = useRef({}); // id -> last-known qty, used to spot new 0s
 
   async function bootstrap() {
     try {
@@ -33,6 +35,21 @@ export default function AdminDashboard() {
 
   async function loadOverview() {
     const data = await api.get('/api/admin/overview');
+
+    // Spot any prize that just dropped to 0 since the last load, so the
+    // admin gets a clear alert rather than having to notice it themselves.
+    const justEmptied = data.prizeTypes.filter((p) => {
+      const prevQty = prevQtyRef.current[p.id];
+      return p.qty === 0 && prevQty !== undefined && prevQty > 0;
+    });
+    if (justEmptied.length > 0) {
+      flashToast(`⚠️ Out of stock: ${justEmptied.map((p) => p.name).join(', ')}`);
+    }
+    data.prizeTypes.forEach((p) => {
+      prevQtyRef.current[p.id] = p.qty;
+    });
+    setStockAlerts(data.prizeTypes.filter((p) => p.qty === 0).map((p) => p.name));
+
     setPrizeTypes(data.prizeTypes);
     setAttemptsPerUser(data.attemptsPerUser);
     setActiveBoards(data.activeBoards);
@@ -45,6 +62,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     bootstrap();
+    const interval = setInterval(() => {
+      loadOverview().catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -148,6 +169,16 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {stockAlerts.length > 0 && (
+        <div className="panel alert-banner">
+          <span className="alert-icon">⚠️</span>
+          <div>
+            <b>Out of stock:</b> {stockAlerts.join(', ')} — refill the quantity below or players will stop being
+            able to win {stockAlerts.length > 1 ? 'these prizes' : 'this prize'}.
+          </div>
+        </div>
+      )}
+
       <div className="panel">
         <h2>Prize pool</h2>
         <p className="sub">
@@ -206,19 +237,35 @@ export default function AdminDashboard() {
             ⬇ Export to Excel
           </a>
         </div>
-        <div className="history-list">
+        <div className="claims-table">
+          <div className="claims-row claims-head">
+            <span>Prize</span>
+            <span>H/P Number</span>
+            <span>Record</span>
+          </div>
           {claims.length === 0 && (
-            <div className="sub" style={{ margin: 0 }}>
+            <div className="sub" style={{ margin: '10px 0 0' }}>
               No prizes claimed yet.
             </div>
           )}
           {claims.slice(0, 20).map((c) => (
-            <div className="history-item" key={c.id}>
-              {c.imageUrl ? <img className="hi-img" src={c.imageUrl} alt={c.prizeName} /> : <span className="e">{c.prizeEmoji || '🎁'}</span>}
-              <span>{c.prizeName}</span>
-              <span className="t">{c.phone}</span>
+            <div className="claims-row" key={c.id}>
+              <span className="claims-prize">
+                {c.imageUrl ? (
+                  <img className="hi-img" src={c.imageUrl} alt={c.prizeName} />
+                ) : (
+                  <span className="e">{c.prizeEmoji || '🎁'}</span>
+                )}
+                {c.prizeName}
+              </span>
+              <span>{c.phone}</span>
               <span className="t">
-                {new Date(c.claimedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {new Date(c.claimedAt).toLocaleString([], {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </span>
             </div>
           ))}

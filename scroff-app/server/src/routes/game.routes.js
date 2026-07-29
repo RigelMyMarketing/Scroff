@@ -192,9 +192,15 @@ gameRouter.post('/reveal', async (req, res) => {
           prizeImagePath: prizeType.imagePath,
         },
       });
+      // Pool inventory shrinks as prizes get claimed (floored at 0), and the
+      // collected counter ticks up — both in one update.
+      const current = await prisma.prizeType.findUnique({ where: { id: prizeType.id } });
       await prisma.prizeType.update({
         where: { id: prizeType.id },
-        data: { claimedCount: { increment: 1 } },
+        data: {
+          qty: Math.max(0, current.qty - 1),
+          claimedCount: { increment: 1 },
+        },
       });
     }
   }

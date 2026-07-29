@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const REVEAL_THRESHOLD = 0.6; // must scratch off 60% of the latex
+const REVEAL_THRESHOLD = 0.4; // must scratch off 40% of the latex
 
 export default function ScratchCard({ cellIndex, prize, onRevealed, onClose }) {
   const canvasRef = useRef(null);

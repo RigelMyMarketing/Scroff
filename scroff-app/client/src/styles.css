@@ -145,6 +145,26 @@ button { font-family: inherit; }
 .history-item .hi-img, .history-item img.hi-img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
 .history-item .t { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); margin-left: auto; }
 
+/* ---------- Admin: out-of-stock alert ---------- */
+.alert-banner { display: flex; align-items: center; gap: 12px; background: #fcebe6; border: 1px solid #f3c6b8; color: var(--cherry); font-size: 14px; }
+.alert-banner .alert-icon { font-size: 22px; flex-shrink: 0; }
+
+/* ---------- Admin: claims table ---------- */
+.claims-table { display: flex; flex-direction: column; }
+.claims-row { display: grid; grid-template-columns: 2fr 1.1fr 1.3fr; gap: 12px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.claims-row:last-child { border-bottom: none; }
+.claims-head { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); font-weight: 700; border-bottom: 2px solid var(--line); padding-top: 0; }
+.claims-prize { display: flex; align-items: center; gap: 10px; }
+.claims-prize .e { font-size: 20px; }
+.claims-prize .hi-img { width: 30px; height: 30px; border-radius: 8px; object-fit: cover; }
+.claims-row .t { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft); }
+
+@media (max-width: 520px) {
+  .claims-row { grid-template-columns: 1fr; gap: 2px; padding: 12px; }
+  .claims-head { display: none; }
+  .claims-row:not(.claims-head) { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+}
+
 /* ---------- Admin: prize rows ---------- */
 .prize-row { display: grid; grid-template-columns: 56px 1fr 132px 90px 44px; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; background: #fbfdfc; }
 .photo-btn { width: 48px; height: 48px; border-radius: 10px; border: 1px dashed var(--silver-2); background: var(--silver-1); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; }
