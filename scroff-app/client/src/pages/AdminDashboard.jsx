@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [prizeTypes, setPrizeTypes] = useState([]);
   const [attemptsPerUser, setAttemptsPerUser] = useState(3);
   const [activeBoards, setActiveBoards] = useState(0);
+  const [claims, setClaims] = useState([]);
   const [toast, setToast] = useState('');
   const [publishing, setPublishing] = useState(false);
   const saveTimers = useRef({});
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
     }
     setCheckingAuth(false);
     await loadOverview();
+    await loadClaims();
   }
 
   async function loadOverview() {
@@ -34,6 +36,11 @@ export default function AdminDashboard() {
     setPrizeTypes(data.prizeTypes);
     setAttemptsPerUser(data.attemptsPerUser);
     setActiveBoards(data.activeBoards);
+  }
+
+  async function loadClaims() {
+    const data = await api.get('/api/admin/claims');
+    setClaims(data.claims);
   }
 
   useEffect(() => {
@@ -79,6 +86,20 @@ export default function AdminDashboard() {
       setPrizeTypes((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       flashToast(err.message);
+    }
+  }
+
+  async function adjustClaimed(id, delta) {
+    // Optimistic update so the +/- buttons feel instant.
+    setPrizeTypes((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, claimedCount: Math.max(0, (p.claimedCount || 0) + delta) } : p)),
+    );
+    try {
+      const updated = await api.patch(`/api/admin/prize-types/${id}/claimed-count`, { delta });
+      setPrizeTypes((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    } catch (err) {
+      flashToast(err.message);
+      loadOverview();
     }
   }
 
@@ -162,6 +183,7 @@ export default function AdminDashboard() {
               prize={p}
               onChange={(patch) => updatePrizeLocal(p.id, patch)}
               onRemove={() => removePrize(p.id)}
+              onAdjustClaimed={(delta) => adjustClaimed(p.id, delta)}
             />
           ))}
         </div>
@@ -183,6 +205,44 @@ export default function AdminDashboard() {
             onChange={(e) => saveAttempts(Math.max(1, Number(e.target.value) || 1))}
           />
         </div>
+      </div>
+
+      <div className="panel">
+        <h2>Claims</h2>
+        <p className="sub">
+          Every real prize claimed by a player, matched to the phone number they entered. Free retries aren't
+          included here since they're not a physical prize.
+        </p>
+        <div className="stat-row">
+          <div className="stat-chip">
+            Total claims <b>{claims.length}</b>
+          </div>
+          <a className="btn btn-ghost" href="/api/admin/claims/export">
+            ⬇ Export to Excel
+          </a>
+        </div>
+        <div className="history-list">
+          {claims.length === 0 && (
+            <div className="sub" style={{ margin: 0 }}>
+              No prizes claimed yet.
+            </div>
+          )}
+          {claims.slice(0, 20).map((c) => (
+            <div className="history-item" key={c.id}>
+              {c.imageUrl ? <img className="hi-img" src={c.imageUrl} alt={c.prizeName} /> : <span className="e">{c.prizeEmoji || '🎁'}</span>}
+              <span>{c.prizeName}</span>
+              <span className="t">{c.phone}</span>
+              <span className="t">
+                {new Date(c.claimedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          ))}
+        </div>
+        {claims.length > 20 && (
+          <p className="hint" style={{ marginTop: 8 }}>
+            Showing the 20 most recent — export to Excel for the full list ({claims.length} total).
+          </p>
+        )}
       </div>
 
       <div className="panel">

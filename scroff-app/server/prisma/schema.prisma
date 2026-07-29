@@ -27,16 +27,45 @@ model Admin {
 
 // One entry in the prize pool, configured by the admin.
 // `qty` is how many of the 50 board cells this prize occupies.
+// `claimedCount` is a running tally of how many units have actually been
+// handed out — incremented automatically when a player claims one, and
+// adjustable by hand from the admin dashboard (+/- buttons) for corrections.
 model PrizeType {
   id           String   @id @default(cuid())
   name         String
   emoji        String? // fallback / quick icon
   imagePath    String? // uploaded photo, takes priority over emoji when present
   qty          Int      @default(0)
+  claimedCount Int      @default(0)
   isFreeRetry  Boolean  @default(false) // "One more time" style prize: refunds the turn
   sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// A player's phone number, captured once before they're let into the prize
+// pool. Keyed by the same anonymous sessionId cookie used everywhere else,
+// so no real player accounts are needed.
+model PlayerProfile {
+  sessionId String   @id
+  phone     String
+  createdAt DateTime @default(now())
+}
+
+// Permanent, never-deleted record of every real prize handed out — this is
+// what the admin's "Claims" list and Excel export are built from. Kept
+// separate from PrizeWin (which is ephemeral and clears on board refresh)
+// so admin reporting survives board refreshes.
+model Claim {
+  id             Int      @id @default(autoincrement())
+  sessionId      String
+  phone          String
+  cellIndex      Int
+  prizeTypeId    String
+  prizeName      String
+  prizeEmoji     String?
+  prizeImagePath String?
+  claimedAt      DateTime @default(now())
 }
 
 // Single-row table holding the live draw configuration.

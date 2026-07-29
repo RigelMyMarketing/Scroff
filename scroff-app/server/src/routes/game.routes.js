@@ -176,6 +176,26 @@ gameRouter.post('/reveal', async (req, res) => {
     if (prizeType.isFreeRetry) {
       usedAfter = Math.max(0, board.used - 1);
       await prisma.playerBoard.update({ where: { id: board.id }, data: { used: usedAfter } });
+    } else {
+      // Permanent record for the admin's Claims list / Excel export, plus a
+      // running "collected" counter per prize. Free retries are skipped —
+      // they're not a physical prize being handed out.
+      const profile = await prisma.playerProfile.findUnique({ where: { sessionId: req.sessionId } });
+      await prisma.claim.create({
+        data: {
+          sessionId: req.sessionId,
+          phone: profile?.phone || 'Unknown',
+          cellIndex,
+          prizeTypeId: prizeType.id,
+          prizeName: prizeType.name,
+          prizeEmoji: prizeType.emoji,
+          prizeImagePath: prizeType.imagePath,
+        },
+      });
+      await prisma.prizeType.update({
+        where: { id: prizeType.id },
+        data: { claimedCount: { increment: 1 } },
+      });
     }
   }
 

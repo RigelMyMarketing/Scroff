@@ -5,6 +5,7 @@ import { burstConfetti } from '../lib/confetti.js';
 import Coin from '../components/Coin.jsx';
 import BowlGrid from '../components/BowlGrid.jsx';
 import ScratchCard from '../components/ScratchCard.jsx';
+import PhoneGate from '../components/PhoneGate.jsx';
 
 export default function PlayHome() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function PlayHome() {
   const [toast, setToast] = useState('');
   const [activeCell, setActiveCell] = useState(null); // { cellIndex, prize }
   const [flushingCell, setFlushingCell] = useState(null);
+  const [checkingPhone, setCheckingPhone] = useState(true);
+  const [phone, setPhone] = useState(null); // null = not yet registered
   const toastTimer = useRef(null);
 
   async function loadState() {
@@ -28,8 +31,27 @@ export default function PlayHome() {
   }
 
   useEffect(() => {
-    loadState();
+    async function checkPhone() {
+      try {
+        const data = await api.get('/api/player/profile');
+        if (data.phone) {
+          setPhone(data.phone);
+          await loadState();
+        }
+      } finally {
+        setCheckingPhone(false);
+      }
+    }
+    checkPhone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handlePhoneSubmit(value) {
+    const res = await api.post('/api/player/profile', { phone: value });
+    setPhone(res.phone);
+    setLoading(true);
+    await loadState();
+  }
 
   function flashToast(msg) {
     setToast(msg);
@@ -103,6 +125,18 @@ export default function PlayHome() {
   function closeModal() {
     setActiveCell(null);
     loadState();
+  }
+
+  if (checkingPhone) {
+    return (
+      <div className="empty">
+        <span className="big-emoji">🪙</span>Loading Scroff…
+      </div>
+    );
+  }
+
+  if (!phone) {
+    return <PhoneGate onSubmit={handlePhoneSubmit} />;
   }
 
   if (loading) {

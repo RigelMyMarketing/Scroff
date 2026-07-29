@@ -7,6 +7,7 @@ import { ensureSession } from './lib/session.js';
 import { authRouter } from './routes/auth.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { gameRouter } from './routes/game.routes.js';
+import { playerRouter } from './routes/player.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/game', ensureSession, gameRouter);
+  app.use('/api/player', ensureSession, playerRouter);
 
   app.use((err, req, res, next) => {
     console.error(err);

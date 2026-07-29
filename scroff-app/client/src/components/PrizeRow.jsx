@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 
-export default function PrizeRow({ prize, onChange, onRemove }) {
+export default function PrizeRow({ prize, onChange, onRemove, onAdjustClaimed }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -59,6 +59,24 @@ export default function PrizeRow({ prize, onChange, onRemove }) {
         </div>
         {uploading && <span className="hint">Uploading…</span>}
         {uploadError && <span className="hint" style={{ color: 'var(--cherry)' }}>{uploadError}</span>}
+      </div>
+
+      <div className="claimed-counter" title="How many of this prize have been collected so far">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => onAdjustClaimed(-1)}
+          disabled={!prize.claimedCount}
+        >
+          −
+        </button>
+        <span className="claimed-count">
+          <b>{prize.claimedCount || 0}</b>
+          <small>collected</small>
+        </span>
+        <button type="button" className="icon-btn" onClick={() => onAdjustClaimed(1)}>
+          +
+        </button>
       </div>
 
       <input
