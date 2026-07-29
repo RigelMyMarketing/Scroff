@@ -173,8 +173,8 @@ adminRouter.put('/settings', async (req, res) => {
 adminRouter.post('/publish', async (req, res) => {
   const prizeTypes = await prisma.prizeType.findMany();
   const total = totalQty(prizeTypes);
-  if (total !== BOARD_SIZE) {
-    return res.status(400).json({ error: `Quantities must total ${BOARD_SIZE}, currently ${total}` });
+  if (total > BOARD_SIZE) {
+    return res.status(400).json({ error: `Quantities can't exceed ${BOARD_SIZE}, currently ${total}` });
   }
   const config = await prisma.drawConfig.upsert({
     where: { id: 1 },

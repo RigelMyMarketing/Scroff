@@ -147,7 +147,7 @@ export default function AdminDashboard() {
   }
 
   const total = prizeTypes.reduce((s, p) => s + Number(p.qty || 0), 0);
-  const totalOk = total === BOARD_SIZE;
+  const totalOk = total <= BOARD_SIZE;
 
   return (
     <div id="app">
@@ -183,7 +183,8 @@ export default function AdminDashboard() {
         <h2>Prize pool</h2>
         <p className="sub">
           Set the prizes in the pool, upload a photo for each (or leave it as an emoji), and set how many of the {BOARD_SIZE}{' '}
-          bowls each one fills. Quantities must add up to exactly {BOARD_SIZE}.
+          bowls each one fills. Quantities can total anything up to {BOARD_SIZE} — any bowls left over show as
+          "Better luck next time" (this also happens naturally as prizes get claimed and the pool runs down).
         </p>
         <div className="stat-row">
           <div className={`stat-chip ${totalOk ? 'ok' : 'warn'}`}>
@@ -286,7 +287,7 @@ export default function AdminDashboard() {
         <button className="btn btn-gold" onClick={publish} disabled={!totalOk || publishing}>
           {publishing ? 'Publishing…' : '🪙 Publish changes'}
         </button>
-        {!totalOk && <span className="hint"> Fix the prize quantities to total exactly {BOARD_SIZE} first.</span>}
+        {!totalOk && <span className="hint"> Reduce the prize quantities to {BOARD_SIZE} or fewer first.</span>}
       </div>
 
       <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>

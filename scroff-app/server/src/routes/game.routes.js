@@ -5,6 +5,11 @@ import { publicUrlFor } from '../lib/uploadStorage.js';
 
 export const gameRouter = Router();
 
+// What a player sees when they pick an empty bowl (no prize behind it) —
+// shaped exactly like a real serialized prize so the client doesn't need
+// any special-casing.
+const NO_PRIZE = { id: null, name: 'Better luck next time!', emoji: '🙈', imageUrl: null, isFreeRetry: false };
+
 async function getConfigAndPrizeTypes() {
   let config = await prisma.drawConfig.findUnique({ where: { id: 1 } });
   if (!config) {
@@ -104,7 +109,7 @@ gameRouter.post('/pick', async (req, res) => {
   const prizeType = prizeTypes.find((p) => p.id === cell.prizeTypeId);
   res.json({
     cellIndex,
-    prize: serializePrize(prizeType),
+    prize: cell.prizeTypeId === null ? NO_PRIZE : serializePrize(prizeType),
     used: updated.used,
     remaining: Math.max(0, config.attemptsPerUser - updated.used),
   });
@@ -147,6 +152,16 @@ gameRouter.post('/reveal', async (req, res) => {
   const cell = cells.find((c) => c.cellIndex === cellIndex);
   if (!cell || cell.status !== 'taken') {
     return res.status(409).json({ error: 'This bowl was not picked yet' });
+  }
+
+  if (cell.prizeTypeId === null) {
+    const config = await prisma.drawConfig.findUnique({ where: { id: 1 } });
+    return res.json({
+      prize: NO_PRIZE,
+      creditedBack: false,
+      used: board.used,
+      remaining: Math.max(0, config.attemptsPerUser - board.used),
+    });
   }
 
   const prizeType = await prisma.prizeType.findUnique({ where: { id: cell.prizeTypeId } });
