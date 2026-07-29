@@ -1,7 +1,17 @@
-// A short, cheerful ascending chime played when a player reveals/claims a
-// prize. Generated on the fly with the Web Audio API instead of an audio
-// file, so there's nothing to upload, host, or license.
+// Plays the custom "win" sound effect (client/public/sounds/win.mp3).
+// Falls back to a generated chime if that file is ever missing or blocked,
+// so a reveal/claim never goes silent for a boring technical reason.
 export function playCongratsChime() {
+  try {
+    const audio = new Audio('/sounds/win.mp3');
+    audio.volume = 0.9;
+    audio.play().catch(() => playGeneratedChime());
+  } catch {
+    playGeneratedChime();
+  }
+}
+
+function playGeneratedChime() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
@@ -24,9 +34,8 @@ export function playCongratsChime() {
       osc.stop(start + 0.4);
     });
 
-    setTimeout(() => ctx.close(), (notes.length * 110 + 500));
+    setTimeout(() => ctx.close(), notes.length * 110 + 500);
   } catch {
-    // Audio might be blocked by the browser's autoplay policy — fine to
-    // fail silently, the visual confetti still plays either way.
+    // Nothing more we can do — fail silently, confetti still plays.
   }
 }
