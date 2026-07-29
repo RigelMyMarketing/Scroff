@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { burstConfetti } from '../lib/confetti.js';
-import { playCongratsChime } from '../lib/sound.js';
 import Coin from '../components/Coin.jsx';
 import BowlGrid from '../components/BowlGrid.jsx';
 import ScratchCard from '../components/ScratchCard.jsx';
@@ -86,7 +85,6 @@ export default function PlayHome() {
     try {
       const res = await api.post('/api/game/reveal', { cellIndex });
       burstConfetti();
-      playCongratsChime();
       setGameState((prev) => ({
         ...prev,
         used: res.used,
