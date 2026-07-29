@@ -124,6 +124,28 @@ adminRouter.get('/claims', async (req, res) => {
   });
 });
 
+// Deletes every claim record — used by the admin's "Clear all" button.
+// Doesn't touch prize quantities or the collected counter; this only
+// clears the record-keeping list.
+adminRouter.delete('/claims', async (req, res) => {
+  const result = await prisma.claim.deleteMany();
+  res.json({ deleted: result.count });
+});
+
+// Deletes one claim record by id.
+adminRouter.delete('/claims/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid claim id' });
+  }
+  try {
+    await prisma.claim.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch {
+    res.status(404).json({ error: 'Claim not found' });
+  }
+});
+
 // Downloads the full claims list as an .xlsx file.
 adminRouter.get('/claims/export', async (req, res) => {
   const claims = await prisma.claim.findMany({ orderBy: { claimedAt: 'desc' } });

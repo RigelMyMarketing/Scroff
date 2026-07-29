@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { playCongratsChime } from '../lib/sound.js';
+import { playCongratsChime, unlockAudio } from '../lib/sound.js';
 
 const REVEAL_THRESHOLD = 0.4; // must scratch off 40% of the latex
 
@@ -100,6 +100,7 @@ export default function ScratchCard({ cellIndex, prize, onRevealed, onClose }) {
       onRevealed(cellIndex);
     }
     function start(e) {
+      unlockAudio();
       drawing = true;
       lastPoint = pos(e);
       scratchAt(lastPoint.x, lastPoint.y);

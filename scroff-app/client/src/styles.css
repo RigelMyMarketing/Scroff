@@ -151,7 +151,7 @@ button { font-family: inherit; }
 
 /* ---------- Admin: claims table ---------- */
 .claims-table { display: flex; flex-direction: column; }
-.claims-row { display: grid; grid-template-columns: 2fr 1.1fr 1.3fr; gap: 12px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.claims-row { display: grid; grid-template-columns: 2fr 1.1fr 1.3fr 36px; gap: 12px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
 .claims-row:last-child { border-bottom: none; }
 .claims-head { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); font-weight: 700; border-bottom: 2px solid var(--line); padding-top: 0; }
 .claims-prize { display: flex; align-items: center; gap: 10px; }
@@ -193,6 +193,8 @@ button { font-family: inherit; }
 .btn-primary:hover { background: var(--teal-mid); }
 .btn-gold { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); color: var(--teal-deep); box-shadow: 0 6px 14px -6px rgba(150, 114, 26, 0.6); }
 .btn-ghost { background: var(--bg-tile); color: var(--teal-deep); }
+.btn-danger { color: var(--cherry); }
+.btn-danger:hover { background: #fcebe6; }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
 
 .field-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }

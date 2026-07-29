@@ -60,6 +60,29 @@ export default function AdminDashboard() {
     setClaims(data.claims);
   }
 
+  async function clearAllClaims() {
+    if (claims.length === 0) return;
+    if (!window.confirm(`Delete all ${claims.length} claim records? This can't be undone.`)) return;
+    try {
+      await api.delete('/api/admin/claims');
+      setClaims([]);
+      flashToast('All claims cleared');
+    } catch (err) {
+      flashToast(err.message);
+    }
+  }
+
+  async function deleteClaim(id) {
+    const prev = claims;
+    setClaims((cs) => cs.filter((c) => c.id !== id)); // optimistic
+    try {
+      await api.delete(`/api/admin/claims/${id}`);
+    } catch (err) {
+      setClaims(prev); // roll back on failure
+      flashToast(err.message);
+    }
+  }
+
   useEffect(() => {
     bootstrap();
     const interval = setInterval(() => {
@@ -237,12 +260,16 @@ export default function AdminDashboard() {
           <a className="btn btn-ghost" href="/api/admin/claims/export">
             ⬇ Export to Excel
           </a>
+          <button type="button" className="btn btn-ghost btn-danger" onClick={clearAllClaims} disabled={claims.length === 0}>
+            🗑 Clear all
+          </button>
         </div>
         <div className="claims-table">
           <div className="claims-row claims-head">
             <span>Prize</span>
             <span>H/P Number</span>
             <span>Record</span>
+            <span></span>
           </div>
           {claims.length === 0 && (
             <div className="sub" style={{ margin: '10px 0 0' }}>
@@ -268,6 +295,14 @@ export default function AdminDashboard() {
                   minute: '2-digit',
                 })}
               </span>
+              <button
+                type="button"
+                className="icon-btn"
+                title="Delete this claim"
+                onClick={() => deleteClaim(c.id)}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
