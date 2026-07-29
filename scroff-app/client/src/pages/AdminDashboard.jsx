@@ -89,20 +89,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function adjustClaimed(id, delta) {
-    // Optimistic update so the +/- buttons feel instant.
-    setPrizeTypes((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, claimedCount: Math.max(0, (p.claimedCount || 0) + delta) } : p)),
-    );
-    try {
-      const updated = await api.patch(`/api/admin/prize-types/${id}/claimed-count`, { delta });
-      setPrizeTypes((prev) => prev.map((p) => (p.id === id ? updated : p)));
-    } catch (err) {
-      flashToast(err.message);
-      loadOverview();
-    }
-  }
-
   async function saveAttempts(value) {
     setAttemptsPerUser(value);
     try {
@@ -183,7 +169,6 @@ export default function AdminDashboard() {
               prize={p}
               onChange={(patch) => updatePrizeLocal(p.id, patch)}
               onRemove={() => removePrize(p.id)}
-              onAdjustClaimed={(delta) => adjustClaimed(p.id, delta)}
             />
           ))}
         </div>

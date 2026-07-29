@@ -159,9 +159,10 @@ button { font-family: inherit; }
 .icon-btn:hover { background: #f6d5cb; }
 .icon-btn[disabled] { opacity: .4; cursor: not-allowed; }
 
-.claimed-counter { display: flex; align-items: center; gap: 6px; justify-content: center; }
-.claimed-counter .icon-btn { background: var(--bg-tile); color: var(--teal-deep); width: 28px; height: 28px; font-size: 15px; }
-.claimed-counter .icon-btn:hover { background: var(--silver-2); }
+.qty-stepper { display: flex; align-items: center; gap: 6px; justify-content: center; }
+.qty-stepper .icon-btn { background: var(--bg-tile); color: var(--teal-deep); width: 28px; height: 28px; font-size: 15px; }
+.qty-stepper .icon-btn:hover { background: var(--silver-2); }
+.qty-stepper input[type='number'] { width: 52px; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 9px 4px; font-size: 14px; font-family: var(--font-mono); }
 .claimed-count { display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 44px; }
 .claimed-count b { font-family: var(--font-mono); font-size: 16px; color: var(--teal-deep); }
 .claimed-count small { font-size: 9.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
@@ -209,6 +210,6 @@ canvas { display: block; touch-action: none; width: 100%; height: 100%; }
 
 @media (max-width: 520px) {
   .prize-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-  .claimed-counter { justify-content: flex-start; }
+  .qty-stepper { justify-content: flex-start; }
   .brand h1 { font-size: 24px; }
 }

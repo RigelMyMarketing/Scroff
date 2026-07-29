@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 
-export default function PrizeRow({ prize, onChange, onRemove, onAdjustClaimed }) {
+export default function PrizeRow({ prize, onChange, onRemove }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -61,30 +61,34 @@ export default function PrizeRow({ prize, onChange, onRemove, onAdjustClaimed })
         {uploadError && <span className="hint" style={{ color: 'var(--cherry)' }}>{uploadError}</span>}
       </div>
 
-      <div className="claimed-counter" title="How many of this prize have been collected so far">
+      <div className="qty-stepper" title="How many bowls in the pool hold this prize">
         <button
           type="button"
           className="icon-btn"
-          onClick={() => onAdjustClaimed(-1)}
-          disabled={!prize.claimedCount}
+          onClick={() => onChange({ ...prize, qty: Math.max(0, Number(prize.qty || 0) - 1) })}
+          disabled={!prize.qty}
         >
           −
         </button>
-        <span className="claimed-count">
-          <b>{prize.claimedCount || 0}</b>
-          <small>collected</small>
-        </span>
-        <button type="button" className="icon-btn" onClick={() => onAdjustClaimed(1)}>
+        <input
+          type="number"
+          min="0"
+          value={prize.qty}
+          onChange={(e) => onChange({ ...prize, qty: Math.max(0, Number(e.target.value) || 0) })}
+        />
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => onChange({ ...prize, qty: Number(prize.qty || 0) + 1 })}
+        >
           +
         </button>
       </div>
 
-      <input
-        type="number"
-        min="0"
-        value={prize.qty}
-        onChange={(e) => onChange({ ...prize, qty: Math.max(0, Number(e.target.value) || 0) })}
-      />
+      <div className="claimed-count" title="Collected automatically when a player claims this prize">
+        <b>{prize.claimedCount || 0}</b>
+        <small>collected</small>
+      </div>
 
       <button type="button" className="icon-btn" title="Remove prize type" onClick={onRemove}>
         ✕

@@ -107,27 +107,6 @@ adminRouter.post('/prize-types/:id/image', uploadPrizeImage.single('image'), asy
   }
 });
 
-// Manual +/- adjustment of how many units of a prize have been "collected"
-// so far — for correcting the count by hand (e.g. a prize handed out
-// outside the app, or a mis-click needing undoing).
-adminRouter.patch('/prize-types/:id/claimed-count', async (req, res) => {
-  const delta = Number(req.body?.delta);
-  if (delta !== 1 && delta !== -1) {
-    return res.status(400).json({ error: 'delta must be 1 or -1' });
-  }
-  try {
-    const current = await prisma.prizeType.findUnique({ where: { id: req.params.id } });
-    if (!current) return res.status(404).json({ error: 'Prize type not found' });
-    const pt = await prisma.prizeType.update({
-      where: { id: req.params.id },
-      data: { claimedCount: Math.max(0, current.claimedCount + delta) },
-    });
-    res.json(serializePrize(pt));
-  } catch {
-    res.status(404).json({ error: 'Prize type not found' });
-  }
-});
-
 // Permanent list of every real prize claimed — the phone number is what
 // lets the admin match a claim back to a person.
 adminRouter.get('/claims', async (req, res) => {
