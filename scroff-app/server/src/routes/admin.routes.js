@@ -16,16 +16,33 @@ function serializePrize(pt) {
     emoji: pt.emoji,
     imageUrl: pt.imagePath ? publicUrlFor(pt.imagePath) : null,
     qty: pt.qty,
-    claimedCount: pt.claimedCount,
     isFreeRetry: pt.isFreeRetry,
     sortOrder: pt.sortOrder,
   };
+}
+
+// "Collected" is always a live count of Claims rows for this prize, never a
+// stored field — so deleting/clearing claims is reflected immediately,
+// wherever a single prize gets serialized back to the admin.
+async function serializePrizeWithClaims(pt) {
+  const claimedCount = await prisma.claim.count({ where: { prizeTypeId: pt.id } });
+  return { ...serializePrize(pt), claimedCount };
 }
 
 adminRouter.get('/overview', async (req, res) => {
   let config = await prisma.drawConfig.findUnique({ where: { id: 1 } });
   if (!config) config = await prisma.drawConfig.create({ data: { id: 1 } });
   const prizeTypes = await prisma.prizeType.findMany({ orderBy: { sortOrder: 'asc' } });
+
+  // "Collected" isn't a separately-maintained counter — it's a live count of
+  // rows in the Claims table per prize. That way, clearing or deleting
+  // claims automatically brings this number back down to match, with
+  // nothing extra to keep in sync.
+  const claimCounts = await prisma.claim.groupBy({ by: ['prizeTypeId'], _count: { _all: true } });
+  const claimedCountByPrize = {};
+  claimCounts.forEach((c) => {
+    claimedCountByPrize[c.prizeTypeId] = c._count._all;
+  });
 
   // Live "how many are left" stats, aggregated across every currently-active
   // player board — useful context for the admin even though players
@@ -49,6 +66,7 @@ adminRouter.get('/overview', async (req, res) => {
     activeBoards: boards.length,
     prizeTypes: prizeTypes.map((p) => ({
       ...serializePrize(p),
+      claimedCount: claimedCountByPrize[p.id] || 0,
       remainingOnActiveBoards: remainingByPrize[p.id] ?? 0,
     })),
   });
@@ -67,7 +85,7 @@ adminRouter.post('/prize-types', async (req, res) => {
       sortOrder: count,
     },
   });
-  res.status(201).json(serializePrize(pt));
+  res.status(201).json(await serializePrizeWithClaims(pt));
 });
 
 adminRouter.patch('/prize-types/:id', async (req, res) => {
@@ -79,7 +97,7 @@ adminRouter.patch('/prize-types/:id', async (req, res) => {
   if (isFreeRetry !== undefined) data.isFreeRetry = Boolean(isFreeRetry);
   try {
     const pt = await prisma.prizeType.update({ where: { id: req.params.id }, data });
-    res.json(serializePrize(pt));
+    res.json(await serializePrizeWithClaims(pt));
   } catch {
     res.status(404).json({ error: 'Prize type not found' });
   }
@@ -101,7 +119,7 @@ adminRouter.post('/prize-types/:id/image', uploadPrizeImage.single('image'), asy
       where: { id: req.params.id },
       data: { imagePath: req.file.filename },
     });
-    res.json(serializePrize(pt));
+    res.json(await serializePrizeWithClaims(pt));
   } catch {
     res.status(404).json({ error: 'Prize type not found' });
   }

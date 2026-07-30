@@ -66,6 +66,7 @@ export default function AdminDashboard() {
     try {
       await api.delete('/api/admin/claims');
       setClaims([]);
+      await loadOverview(); // "collected" counts are derived from claims — refresh them now
       flashToast('All claims cleared');
     } catch (err) {
       flashToast(err.message);
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
     setClaims((cs) => cs.filter((c) => c.id !== id)); // optimistic
     try {
       await api.delete(`/api/admin/claims/${id}`);
+      await loadOverview(); // keep the "collected" count in sync with what's left
     } catch (err) {
       setClaims(prev); // roll back on failure
       flashToast(err.message);
@@ -251,7 +253,8 @@ export default function AdminDashboard() {
         <h2>Claims</h2>
         <p className="sub">
           Every real prize claimed by a player, matched to the phone number they entered. Free retries aren't
-          included here since they're not a physical prize.
+          included here since they're not a physical prize. Each prize's "collected" count above is drawn from
+          this table — deleting or clearing entries here brings that count back down to match.
         </p>
         <div className="stat-row">
           <div className="stat-chip">
