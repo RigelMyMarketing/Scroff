@@ -51,6 +51,7 @@ export default function PlayHome() {
     setPhone(res.phone);
     setLoading(true);
     await loadState();
+    flashToast('Fresh board! New prizes are waiting.');
   }
 
   function flashToast(msg) {
@@ -116,7 +117,11 @@ export default function PlayHome() {
         cells: res.cells,
         myPrizes: res.myPrizes,
       }));
-      flashToast('Fresh board! New prizes are waiting.');
+      // Board is refreshed, but require a phone number again before letting
+      // anyone play it — this is what makes sure a new participant picking
+      // up the device (e.g. at a kiosk) gets their own number recorded,
+      // instead of claims being attributed to whoever played last.
+      setPhone(null);
     } catch (e) {
       flashToast(e.message);
     }
