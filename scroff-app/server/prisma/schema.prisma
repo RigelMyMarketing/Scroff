@@ -26,16 +26,20 @@ model Admin {
 }
 
 // One entry in the prize pool, configured by the admin.
-// `qty` is how many of the 50 board cells this prize occupies. There's no
-// stored "collected" counter here — the admin dashboard computes that live
-// by counting rows in the Claim table, so it always matches what's actually
-// in that table (including after the admin deletes/clears claims).
+// `weight` is a percentage (0-100) controlling how often this prize shows
+// up when a fresh board is generated — entirely independent of `qty`.
+// `qty` is physical stock: it goes down when a player claims this prize,
+// and comes back up if the admin deletes/clears that claim from the
+// Claims table. There's no stored "collected" counter — the admin
+// dashboard computes that live by counting rows in the Claim table, so it
+// always matches what's actually in that table.
 model PrizeType {
   id          String   @id @default(cuid())
   name        String
   emoji       String? // fallback / quick icon
   imagePath   String? // uploaded photo, takes priority over emoji when present
-  qty         Int      @default(0)
+  weight      Int      @default(0) // % chance of appearing on a freshly generated board
+  qty         Int      @default(0) // physical stock remaining
   isFreeRetry Boolean  @default(false) // "One more time" style prize: refunds the turn
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())

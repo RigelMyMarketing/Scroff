@@ -4,7 +4,7 @@ import ExcelJS from 'exceljs';
 import { prisma } from '../lib/prisma.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { uploadPrizeImage, publicUrlFor } from '../lib/uploadStorage.js';
-import { totalQty, BOARD_SIZE } from '../lib/board.js';
+import { totalQty, totalWeight, BOARD_SIZE } from '../lib/board.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -15,6 +15,7 @@ function serializePrize(pt) {
     name: pt.name,
     emoji: pt.emoji,
     imageUrl: pt.imagePath ? publicUrlFor(pt.imagePath) : null,
+    weight: pt.weight,
     qty: pt.qty,
     isFreeRetry: pt.isFreeRetry,
     sortOrder: pt.sortOrder,
@@ -62,6 +63,7 @@ adminRouter.get('/overview', async (req, res) => {
     attemptsPerUser: config.attemptsPerUser,
     configVersion: config.configVersion,
     totalQty: totalQty(prizeTypes),
+    totalWeight: totalWeight(prizeTypes),
     boardSize: BOARD_SIZE,
     activeBoards: boards.length,
     prizeTypes: prizeTypes.map((p) => ({
@@ -73,13 +75,14 @@ adminRouter.get('/overview', async (req, res) => {
 });
 
 adminRouter.post('/prize-types', async (req, res) => {
-  const { name, emoji, qty, isFreeRetry } = req.body || {};
+  const { name, emoji, weight, qty, isFreeRetry } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Prize name is required' });
   const count = await prisma.prizeType.count();
   const pt = await prisma.prizeType.create({
     data: {
       name,
       emoji: emoji || '🎁',
+      weight: Math.max(0, Number(weight) || 0),
       qty: Number(qty) || 0,
       isFreeRetry: Boolean(isFreeRetry),
       sortOrder: count,
@@ -89,10 +92,11 @@ adminRouter.post('/prize-types', async (req, res) => {
 });
 
 adminRouter.patch('/prize-types/:id', async (req, res) => {
-  const { name, emoji, qty, isFreeRetry } = req.body || {};
+  const { name, emoji, weight, qty, isFreeRetry } = req.body || {};
   const data = {};
   if (name !== undefined) data.name = name;
   if (emoji !== undefined) data.emoji = emoji;
+  if (weight !== undefined) data.weight = Math.max(0, Number(weight) || 0);
   if (qty !== undefined) data.qty = Math.max(0, Number(qty) || 0);
   if (isFreeRetry !== undefined) data.isFreeRetry = Boolean(isFreeRetry);
   try {
@@ -143,21 +147,38 @@ adminRouter.get('/claims', async (req, res) => {
 });
 
 // Deletes every claim record — used by the admin's "Clear all" button.
-// Doesn't touch prize quantities or the collected counter; this only
-// clears the record-keeping list.
+// Restores stock: each prize's qty gets back exactly as many units as the
+// claims being removed for it, since those units are no longer considered
+// "given out". Doesn't touch weight (board odds) at all.
 adminRouter.delete('/claims', async (req, res) => {
-  const result = await prisma.claim.deleteMany();
-  res.json({ deleted: result.count });
+  const counts = await prisma.claim.groupBy({ by: ['prizeTypeId'], _count: { _all: true } });
+  const restoreOps = counts.map((c) =>
+    prisma.prizeType.updateMany({
+      where: { id: c.prizeTypeId },
+      data: { qty: { increment: c._count._all } },
+    }),
+  );
+  const results = await prisma.$transaction([...restoreOps, prisma.claim.deleteMany()]);
+  const deleteResult = results[results.length - 1];
+  res.json({ deleted: deleteResult.count });
 });
 
-// Deletes one claim record by id.
+// Deletes one claim record by id, restoring 1 unit of stock for its prize.
 adminRouter.delete('/claims/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     return res.status(400).json({ error: 'Invalid claim id' });
   }
   try {
-    await prisma.claim.delete({ where: { id } });
+    const claim = await prisma.claim.findUnique({ where: { id } });
+    if (!claim) return res.status(404).json({ error: 'Claim not found' });
+    await prisma.$transaction([
+      prisma.prizeType.updateMany({
+        where: { id: claim.prizeTypeId },
+        data: { qty: { increment: 1 } },
+      }),
+      prisma.claim.delete({ where: { id } }),
+    ]);
     res.json({ ok: true });
   } catch {
     res.status(404).json({ error: 'Claim not found' });
@@ -212,9 +233,9 @@ adminRouter.put('/settings', async (req, res) => {
 // the game API — see getFreshBoard() in game.routes.js.
 adminRouter.post('/publish', async (req, res) => {
   const prizeTypes = await prisma.prizeType.findMany();
-  const total = totalQty(prizeTypes);
-  if (total > BOARD_SIZE) {
-    return res.status(400).json({ error: `Quantities can't exceed ${BOARD_SIZE}, currently ${total}` });
+  const total = totalWeight(prizeTypes);
+  if (total > 100) {
+    return res.status(400).json({ error: `Prize weights can't exceed 100%, currently ${total}%` });
   }
   const config = await prisma.drawConfig.upsert({
     where: { id: 1 },

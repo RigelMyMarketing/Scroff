@@ -4,8 +4,6 @@ import { api } from '../lib/api.js';
 import Coin from '../components/Coin.jsx';
 import PrizeRow from '../components/PrizeRow.jsx';
 
-const BOARD_SIZE = 50;
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -67,7 +65,7 @@ export default function AdminDashboard() {
       await api.delete('/api/admin/claims');
       setClaims([]);
       await loadOverview(); // "collected" counts are derived from claims — refresh them now
-      flashToast('All claims cleared');
+      flashToast('All claims cleared — stock restored');
     } catch (err) {
       flashToast(err.message);
     }
@@ -108,6 +106,7 @@ export default function AdminDashboard() {
         await api.patch(`/api/admin/prize-types/${id}`, {
           name: latest.name,
           emoji: latest.emoji,
+          weight: latest.weight,
           qty: latest.qty,
           isFreeRetry: latest.isFreeRetry,
         });
@@ -119,7 +118,7 @@ export default function AdminDashboard() {
 
   async function addPrize() {
     try {
-      const created = await api.post('/api/admin/prize-types', { name: 'New prize', emoji: '🎁', qty: 0 });
+      const created = await api.post('/api/admin/prize-types', { name: 'New prize', emoji: '🎁', weight: 0, qty: 0 });
       setPrizeTypes((prev) => [...prev, created]);
     } catch (err) {
       flashToast(err.message);
@@ -171,8 +170,9 @@ export default function AdminDashboard() {
     );
   }
 
-  const total = prizeTypes.reduce((s, p) => s + Number(p.qty || 0), 0);
-  const totalOk = total <= BOARD_SIZE;
+  const totalWeight = prizeTypes.reduce((s, p) => s + Number(p.weight || 0), 0);
+  const totalStock = prizeTypes.reduce((s, p) => s + Number(p.qty || 0), 0);
+  const totalOk = totalWeight <= 100;
 
   return (
     <div id="app">
@@ -207,13 +207,17 @@ export default function AdminDashboard() {
       <div className="panel">
         <h2>Prize pool</h2>
         <p className="sub">
-          Set the prizes in the pool, upload a photo for each (or leave it as an emoji), and set how many of the {BOARD_SIZE}{' '}
-          bowls each one fills. Quantities can total anything up to {BOARD_SIZE} — any bowls left over show as
-          "Better luck next time" (this also happens naturally as prizes get claimed and the pool runs down).
+          Set the prizes in the pool and upload a photo for each (or leave it as an emoji). Each prize has two
+          separate numbers: <b>% odds</b> controls how often it shows up on a freshly generated board (must total up
+          to 100% across all prizes), and <b>stock</b> is physical inventory — it goes down when a player claims that
+          prize, and comes back up if you delete or clear that claim later.
         </p>
         <div className="stat-row">
           <div className={`stat-chip ${totalOk ? 'ok' : 'warn'}`}>
-            Assigned <b>{total}</b> / {BOARD_SIZE}
+            Odds assigned <b>{totalWeight}%</b> / 100%
+          </div>
+          <div className="stat-chip">
+            Total stock <b>{totalStock}</b> units
           </div>
           <div className="stat-chip">
             Active boards right now <b>{activeBoards}</b>
@@ -254,7 +258,8 @@ export default function AdminDashboard() {
         <p className="sub">
           Every real prize claimed by a player, matched to the phone number they entered. Free retries aren't
           included here since they're not a physical prize. Each prize's "collected" count above is drawn from
-          this table — deleting or clearing entries here brings that count back down to match.
+          this table, and deleting or clearing entries here also adds that stock back — as if that claim never
+          happened.
         </p>
         <div className="stat-row">
           <div className="stat-chip">
@@ -325,7 +330,7 @@ export default function AdminDashboard() {
         <button className="btn btn-gold" onClick={publish} disabled={!totalOk || publishing}>
           {publishing ? 'Publishing…' : '🪙 Publish changes'}
         </button>
-        {!totalOk && <span className="hint"> Reduce the prize quantities to {BOARD_SIZE} or fewer first.</span>}
+        {!totalOk && <span className="hint"> Reduce the prize odds to 100% or less first.</span>}
       </div>
 
       <div className={`toast ${toast ? 'show' : ''}`}>{toast}</div>

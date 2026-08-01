@@ -167,15 +167,12 @@ export default function PlayHome() {
   return (
     <div id="app">
       <div className="topbar">
-        <div className="brand">
+        <button className="brand brand-link" onClick={() => navigate('/')} title="Back to homepage">
           <Coin />
           <div>
             <h1>Scroff</h1>
             <div className="tagline">Scratch &amp; Win</div>
           </div>
-        </div>
-        <button className="btn btn-ghost" onClick={() => navigate('/')}>
-          ← Switch role
         </button>
       </div>
 
